@@ -1,11 +1,14 @@
 {
   "name": "megg",
   "version": "1.0.0",
-  "description": "",
+  "description": "MEGG - Memory Enhancement for GenAI Guides",
   "main": "build/index.js",
   "bin": {
     "megg": "./build/index.js"
   },
+  "files": [
+    "build"
+  ],
   "directories": {
     "test": "tests"
   },
