@@ -343,6 +343,28 @@ megg makes AI agents behave like good employees who:
 
 Every AI session starts fresh, but with megg, your agent remembers.
 
+## Development
+
+```bash
+# Clone and install
+git clone https://github.com/toruai/megg.git
+cd megg
+npm install
+
+# Build
+npm run build
+
+# Run tests
+npm test
+
+# Link for local testing
+npm link
+megg --help
+
+# Setup with symlinks (changes reflect immediately)
+megg setup --link
+```
+
 ## Contributing
 
 Contributions welcome! Please read our contributing guidelines before submitting PRs.
