@@ -9,6 +9,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import os from 'os';
 import { execSync, spawnSync } from 'child_process';
 import { exists, readFile, writeFile } from '../utils/files.js';
 
@@ -37,7 +38,7 @@ export interface SetupStep {
 }
 
 // Constants
-const CLAUDE_CONFIG_DIR = path.join(process.env.HOME || '~', '.claude');
+const CLAUDE_CONFIG_DIR = path.join(os.homedir(), '.claude');
 const CLAUDE_SKILLS_DIR = path.join(CLAUDE_CONFIG_DIR, 'skills');
 const CLAUDE_HOOKS_FILE = path.join(CLAUDE_CONFIG_DIR, 'hooks.json');
 

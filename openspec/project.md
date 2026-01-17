@@ -20,7 +20,7 @@ megg is a memory system for AI agents. It turns stateless agents into "good empl
 - Clear JSDoc comments on exports
 
 ### Architecture Patterns
-- **6 Core Tools**: context, learn, init, maintain, state, setup
+- **6 Core Commands**: context, learn, init, maintain, state, setup (5 MCP tools + setup CLI)
 - **Domain Hierarchy**: .megg directories for bounded contexts, NOT code folders
 - **Single Knowledge File**: One knowledge.md per domain with type + topics
 - **Session State File**: One state.md for ephemeral cross-session handoff
@@ -107,7 +107,12 @@ Content...
 ## External Dependencies
 
 ### MCP SDK
-Model Context Protocol for AI tool integration. megg exposes 5 tools via MCP.
+Model Context Protocol for AI tool integration. megg exposes 5 tools via MCP:
+- `context` - Load context chain + knowledge + state
+- `learn` - Add knowledge entries
+- `init` - Initialize megg in directory
+- `maintain` - Analyze and clean up knowledge
+- `state` - Session state management
 
 ### Claude Code Integration
 - SessionStart hook: Auto-load context (includes state if active)
