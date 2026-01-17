@@ -12,17 +12,6 @@
           }
         ]
       }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Review the session briefly. If the user made significant architectural decisions, discovered patterns worth reusing, or encountered gotchas/traps, suggest they capture these with megg learn() before stopping. Format: megg learn(title, type, topics, content). Types: decision, pattern, gotcha, context. If only routine work was done, allow stopping. Session context: $ARGUMENTS",
-            "timeout": 30
-          }
-        ]
-      }
     ]
   }
 }

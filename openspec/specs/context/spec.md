@@ -65,6 +65,23 @@ The system SHALL list all .md files in the current .megg directory, indicating w
 - **AND** info.md and knowledge.md SHALL be marked as loaded
 - **AND** custom.md SHALL be marked as not loaded
 
+### Requirement: State Loading
+The system SHALL load state.md if present and not expired.
+
+#### Scenario: Load active state
+- **WHEN** context() discovers a .megg with state.md
+- **AND** state is active (status: active, updated within 48h)
+- **THEN** include state content in result
+
+#### Scenario: Skip expired state
+- **WHEN** context() discovers a .megg with state.md
+- **AND** state is expired (status: done OR updated > 48h ago)
+- **THEN** exclude state from result
+
+#### Scenario: No state file
+- **WHEN** context() discovers a .megg without state.md
+- **THEN** state field is null in result
+
 ### Requirement: SessionStart Hook Output
 The system SHALL format output for Claude Code SessionStart hook integration when --json flag is used.
 
@@ -72,4 +89,5 @@ The system SHALL format output for Claude Code SessionStart hook integration whe
 - **WHEN** context --json is executed
 - **THEN** output SHALL be JSON with hookSpecificOutput.additionalContext
 - **AND** systemMessage SHALL list actual file paths loaded
+- **AND** include state.md in loaded files list if active
 - **AND** a collaborative learning reminder SHALL be included
