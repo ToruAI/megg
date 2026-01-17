@@ -360,7 +360,7 @@ npm test
 # Verify everything works
 ./scripts/verify-install.sh
 
-# Link for local testing
+# Link for local testing (use sudo on Linux if needed)
 npm link
 megg --help
 
