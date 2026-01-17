@@ -357,6 +357,9 @@ npm run build
 # Run tests
 npm test
 
+# Verify everything works
+./scripts/verify-install.sh
+
 # Link for local testing
 npm link
 megg --help
