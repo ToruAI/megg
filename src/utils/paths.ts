@@ -9,6 +9,7 @@ import { exists, listFiles } from './files.js';
 export const MEGG_DIR_NAME = '.megg';
 export const INFO_FILE_NAME = 'info.md';
 export const KNOWLEDGE_FILE_NAME = 'knowledge.md';
+export const STATE_FILE_NAME = 'state.md';
 
 /**
  * Resolves an absolute path from the project root.

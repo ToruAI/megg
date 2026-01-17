@@ -32,12 +32,46 @@ Session 47: Agent automatically knows about JWT decision
 - **Hierarchical Context** - Company → Project → Feature inheritance
 - **Size-Aware Loading** - Smart token management (full/summary/blocked)
 - **Topic Filtering** - Query knowledge by tags like `auth`, `api`, `security`
+- **Session Handoff** - Pass state between sessions with `/megg-state`
 - **MCP Protocol** - Works with Claude Desktop, Claude Code, and other MCP clients
 - **CLI & API** - Use from terminal or programmatically
 
 ## Quick Start
 
-### 1. Install MCP Server
+### 1. Install
+
+```bash
+npm install -g megg
+```
+
+### 2. Setup (one-time, for Claude Code)
+
+```bash
+megg setup
+```
+
+This automatically:
+- Registers megg as an MCP server
+- Installs the `/megg-state` skill
+- Configures SessionStart hook for auto-loading context
+
+### 3. Initialize in Your Project
+
+```bash
+cd your-project
+megg init
+```
+
+This creates a `.megg/` folder with:
+- `info.md` - Project identity and rules
+- `knowledge.md` - Accumulated learnings
+
+That's it! Context loads automatically when you start Claude Code.
+
+---
+
+<details>
+<summary>Manual Setup (without megg setup)</summary>
 
 Add to your `claude_desktop_config.json`:
 
@@ -52,43 +86,25 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-Or install globally:
-
-```bash
-npm install -g megg
-```
-
-### 2. Initialize in Your Project
-
-```bash
-npx megg init
-```
-
-This creates a `.megg/` folder with:
-- `info.md` - Project identity and rules
-- `knowledge.md` - Accumulated learnings
-
-### 3. (Optional) Auto-Load Context in Claude Code
-
-Add to `.claude/settings.json` for automatic context on session start:
+And add to `~/.claude/hooks.json` for automatic context loading:
 
 ```json
 {
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "npx megg context --json 2>/dev/null || echo '{}'"
-          }
-        ]
-      }
-    ]
-  }
+  "SessionStart": [
+    {
+      "matcher": "startup|resume",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "npx megg context --json 2>/dev/null || echo '{}'"
+        }
+      ]
+    }
+  ]
 }
 ```
+
+</details>
 
 ## How It Works
 
@@ -128,14 +144,15 @@ When you call `context("clients/acme")`, megg loads the full chain:
 
 ## API Reference
 
-### 4 Simple Tools
+### 5 Core Tools
 
 | Tool | Purpose |
 |------|---------|
-| `context(path?, topic?)` | Load context chain + knowledge |
+| `context(path?, topic?)` | Load context chain + knowledge + state |
 | `learn(title, type, topics, content)` | Add knowledge entry |
 | `init()` | Initialize megg in directory |
 | `maintain()` | Analyze and clean up bloated knowledge |
+| `state(content?, status?)` | Session state handoff (ephemeral) |
 
 ### CLI Usage
 
@@ -154,6 +171,12 @@ npx megg init
 
 # Check knowledge health
 npx megg maintain
+
+# Show current session state
+npx megg state
+
+# Clear session state (mark task done)
+npx megg state --clear
 ```
 
 ### MCP Tool Usage
@@ -177,6 +200,52 @@ init()
 
 // Maintenance
 maintain()
+
+// Session state
+state()                    // Read current state
+state({ content: "..." })  // Write state
+state({ status: "done" })  // Clear state
+```
+
+### Session State with /megg-state
+
+Unlike permanent knowledge, **session state** is ephemeral - designed for passing context between sessions when you're mid-task.
+
+```bash
+# In Claude Code, use the skill:
+/megg-state         # Capture current work for next session
+/megg-state show    # Display current state
+/megg-state clear   # Mark task complete, clear state
+```
+
+**State vs Knowledge:**
+| Aspect | state.md | knowledge.md |
+|--------|----------|--------------|
+| Purpose | Session handoff | Permanent wisdom |
+| Lifecycle | Overwritten each capture | Accumulated over time |
+| Expiry | Auto-expires after 48h | Never expires |
+| Size limit | 2k tokens (hard) | 8k-16k tokens (soft) |
+
+**Example state.md:**
+```markdown
+---
+updated: 2026-01-17T10:30:00Z
+status: active
+---
+
+## Working On
+Implementing user authentication
+
+## Progress
+- Created auth middleware
+- Added JWT validation
+
+## Next
+- Add refresh token rotation
+- Write tests
+
+## Context
+Files: src/middleware/auth.ts, src/utils/jwt.ts
 ```
 
 ## Use Cases
@@ -213,7 +282,8 @@ maintain()
 project/
 ├── .megg/
 │   ├── info.md          # Identity & rules (~200 tokens)
-│   └── knowledge.md     # Accumulated learnings
+│   ├── knowledge.md     # Accumulated learnings (permanent)
+│   └── state.md         # Session handoff (ephemeral)
 ```
 
 ### info.md Template
@@ -261,6 +331,7 @@ v1 tools still work but are deprecated:
 | `remember()` | `learn()` |
 | `map()` | Included in `context()` |
 | `settle()` | `maintain()` |
+| - | `state()` (new in v1.1.0) |
 
 ## Philosophy
 

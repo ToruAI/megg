@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * megg v2 - MCP Server
+ * megg - MCP Server
  *
  * Simplified memory system for AI agents.
- * 4 core tools: init, context, learn, maintain
+ * 5 core tools: init, context, learn, maintain, state
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -14,17 +14,18 @@ import { context, formatContextForDisplay } from "./commands/context.js";
 import { learn, isValidEntryType } from "./commands/learn.js";
 import { init, initCommand } from "./commands/init.js";
 import { maintain, formatMaintenanceReport } from "./commands/maintain.js";
+import { state, formatStateForDisplay } from "./commands/state.js";
 
 // Create server instance
 const server = new McpServer({
   name: "megg",
-  version: "2.0.0",
+  version: "1.1.0",
 });
 
 const PROJECT_ROOT = process.cwd();
 
 // ============================================================================
-// Core Tools (v2)
+// Core Tools (v1.1.0)
 // ============================================================================
 
 server.tool(
@@ -142,6 +143,51 @@ server.tool(
   }
 );
 
+server.tool(
+  "state",
+  "Manage ephemeral session state for cross-session handoff. Call without args to read current state. Call with content to write state. Call with status='done' to clear state. State auto-expires after 48h.",
+  {
+    content: z.string().optional().describe("State content to write (Working On, Progress, Next, Context sections)"),
+    status: z.enum(["active", "done"]).optional().describe("Set to 'done' to clear state"),
+    path: z.string().optional().describe("Target path (defaults to cwd)"),
+  },
+  async ({ content, status, path: targetPath }) => {
+    try {
+      const result = await state({
+        content,
+        status,
+        path: targetPath || PROJECT_ROOT,
+      });
+
+      if (!result.success) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Error: ${result.error}` }],
+        };
+      }
+
+      let response: string;
+      if (status === 'done') {
+        response = '✓ State cleared.';
+      } else if (content) {
+        response = `✓ State saved to ${result.state?.path}`;
+        if (result.warning) {
+          response += `\n\n⚠️ ${result.warning}`;
+        }
+      } else {
+        response = formatStateForDisplay(result.state || null);
+      }
+
+      return { content: [{ type: "text", text: response }] };
+    } catch (err: any) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error: ${err.message}` }],
+      };
+    }
+  }
+);
+
 // ============================================================================
 // Main
 // ============================================================================
@@ -149,7 +195,7 @@ server.tool(
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("megg v2 MCP Server running on stdio");
+  console.error("megg MCP Server running on stdio");
 }
 
 main().catch((error) => {

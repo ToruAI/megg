@@ -1,12 +1,13 @@
 /**
- * context() - Load context chain and knowledge
+ * context() - Load context chain, knowledge, and state
  *
  * This is the main workhorse command. It:
  * 1. Walks up to find all ancestor .megg directories
  * 2. Loads the info.md chain
  * 3. Loads knowledge.md (full, summary, or blocked based on size)
- * 4. Discovers siblings and children
- * 5. Returns formatted context for Claude
+ * 4. Loads state.md if present and not expired
+ * 5. Discovers siblings and children
+ * 6. Returns formatted context for Claude
  */
 
 import path from 'path';
@@ -17,7 +18,7 @@ import type {
   KnowledgeResult,
   SessionStartOutput,
   MeggFile,
-  DEFAULT_CONFIG,
+  StateResult,
 } from '../types.js';
 import { exists, readFile } from '../utils/files.js';
 import {
@@ -27,9 +28,11 @@ import {
   getDomainName,
   KNOWLEDGE_FILE_NAME,
   INFO_FILE_NAME,
+  STATE_FILE_NAME,
 } from '../utils/paths.js';
 import { estimateTokens } from '../utils/tokens.js';
 import { parseKnowledge, generateSummary, filterByTopic, entriesToMarkdown } from '../utils/knowledge.js';
+import { readState } from './state.js';
 
 // Thresholds
 const FULL_LOAD_THRESHOLD = 8000;    // Load full if under this
@@ -126,11 +129,20 @@ export async function context(targetPath?: string, topic?: string): Promise<Cont
     }
   }
 
-  // 4. Discover siblings and children
+  // 4. Load state (from deepest/target .megg, if not expired)
+  let state: StateResult | null = null;
+  if (targetMegg) {
+    const stateResult = await readState(path.dirname(targetMegg));
+    if (stateResult && !stateResult.expired) {
+      state = stateResult;
+    }
+  }
+
+  // 5. Discover siblings and children
   const siblings = await findSiblingMegg(cwd);
   const children = await findChildMegg(cwd);
 
-  // 5. Discover all files in current .megg directory
+  // 6. Discover all files in current .megg directory
   const files: MeggFile[] = [];
   if (targetMegg) {
     try {
@@ -139,7 +151,8 @@ export async function context(targetPath?: string, topic?: string): Promise<Cont
         if (entry.isFile() && entry.name.endsWith('.md')) {
           const filePath = path.join(targetMegg, entry.name);
           const isLoaded = entry.name === INFO_FILE_NAME ||
-            (entry.name === KNOWLEDGE_FILE_NAME && knowledge !== null);
+            (entry.name === KNOWLEDGE_FILE_NAME && knowledge !== null) ||
+            (entry.name === STATE_FILE_NAME && state !== null);
           files.push({
             name: entry.name,
             path: filePath,
@@ -155,6 +168,7 @@ export async function context(targetPath?: string, topic?: string): Promise<Cont
   return {
     chain,
     knowledge,
+    state,
     siblings,
     children,
     files,
@@ -191,6 +205,13 @@ export function formatContextForDisplay(result: ContextResult): string {
       out += `> ⚠️ ${result.knowledge.warning}\n\n`;
     }
     out += result.knowledge.content + '\n\n';
+  }
+
+  // State (session handoff)
+  if (result.state) {
+    out += `## Session State\n\n`;
+    out += `*Last updated: ${result.state.updated}*\n\n`;
+    out += result.state.content + '\n\n';
   }
 
   // Files in .megg
@@ -236,6 +257,10 @@ export function formatForSessionStartHook(result: ContextResult): SessionStartOu
       'knowledge.md'
     );
     loadedFiles.push(`${knowledgePath} (${result.knowledge.mode}, ${result.knowledge.tokens} tokens)`);
+  }
+
+  if (result.state && result.chain.length > 0) {
+    loadedFiles.push(`${result.state.path} (state, ${result.state.tokens} tokens)`);
   }
 
   // Find files that are available but not loaded

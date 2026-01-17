@@ -20,12 +20,13 @@ megg is a memory system for AI agents. It turns stateless agents into "good empl
 - Clear JSDoc comments on exports
 
 ### Architecture Patterns
-- **4 Core Tools**: context, learn, init, maintain
+- **6 Core Tools**: context, learn, init, maintain, state, setup
 - **Domain Hierarchy**: .megg directories for bounded contexts, NOT code folders
 - **Single Knowledge File**: One knowledge.md per domain with type + topics
+- **Session State File**: One state.md for ephemeral cross-session handoff
 - **Size-Aware Loading**: Full (<8k tokens), summary (8-16k), blocked (>16k)
 - **Auto-Discovery**: Walk up/down directory tree to find .megg chain
-- **Hooks Integration**: SessionStart auto-loads context, Stop suggests learning
+- **One-Command Setup**: `megg setup` configures MCP, skills, hooks
 
 ### File Structure
 ```
@@ -34,16 +35,22 @@ src/
 ├── index.ts              # MCP server entry
 ├── cli.ts                # CLI entry point
 ├── commands/
-│   ├── context.ts        # Load context chain + knowledge
+│   ├── context.ts        # Load context chain + knowledge + state
 │   ├── learn.ts          # Add knowledge entries
 │   ├── init.ts           # Initialize megg
-│   └── maintain.ts       # Cleanup + consolidation
+│   ├── maintain.ts       # Cleanup + consolidation
+│   ├── state.ts          # Session state management
+│   └── setup.ts          # First-time setup (MCP, skills, hooks)
 └── utils/
     ├── files.ts          # File I/O
     ├── format.ts         # Frontmatter formatting
     ├── paths.ts          # Directory discovery
     ├── tokens.ts         # Token estimation
     └── knowledge.ts      # Parsing, summarization
+
+.claude/
+└── skills/
+    └── megg-state.md     # /megg-state skill
 
 hooks/
 ├── hooks.json            # Claude Code plugin hooks
@@ -79,9 +86,11 @@ Content...
 ```
 
 ### Size Thresholds
-- 8,000 tokens: Full load limit
+- 8,000 tokens: Full load limit (knowledge)
 - 16,000 tokens: Summary limit (blocked above)
+- 2,000 tokens: State hard limit (truncated if exceeded)
 - 90 days: Staleness threshold for maintenance
+- 48 hours: State expiry threshold
 
 ## Important Constraints
 
@@ -98,12 +107,11 @@ Content...
 ## External Dependencies
 
 ### MCP SDK
-Model Context Protocol for AI tool integration. megg exposes 4 tools via MCP.
+Model Context Protocol for AI tool integration. megg exposes 5 tools via MCP.
 
-### Claude Code Hooks
-Integration points:
-- SessionStart: Auto-load context
-- Stop: Suggest learning capture
+### Claude Code Integration
+- SessionStart hook: Auto-load context (includes state if active)
+- /megg-state skill: Manual state capture/clear
 
 ### Token Estimation
 Simple heuristic: ~4 characters per token. Good enough for size decisions.

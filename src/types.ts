@@ -1,5 +1,5 @@
 /**
- * megg v2 - Simplified memory system for AI agents
+ * megg v1.1.0 - Simplified memory system for AI agents
  *
  * Core concepts:
  * - Domain hierarchy (for bounded contexts like clients, products)
@@ -62,9 +62,38 @@ export interface MeggFile {
 export interface ContextResult {
   chain: DomainInfo[];
   knowledge: KnowledgeResult | null;
+  state: StateResult | null;
   siblings: string[];
   children: string[];
   files: MeggFile[];  // All files in current .megg directory
+}
+
+// ============================================================================
+// State Types (ephemeral session handoff)
+// ============================================================================
+
+export type StateStatus = 'active' | 'done';
+
+export interface StateResult {
+  content: string;
+  status: StateStatus;
+  updated: string;  // ISO timestamp
+  tokens: number;
+  expired: boolean;
+  path: string;
+}
+
+export interface StateInput {
+  content?: string;
+  status?: StateStatus;
+  path?: string;
+}
+
+export interface StateCommandResult {
+  success: boolean;
+  state?: StateResult;
+  warning?: string;
+  error?: string;
 }
 
 // ============================================================================
